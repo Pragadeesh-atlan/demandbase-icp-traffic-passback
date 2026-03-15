@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime, timezone
 
 import gspread
 from google.oauth2.credentials import Credentials
@@ -48,13 +47,15 @@ def get_existing_gclids(sheet_id, client_id, client_secret, refresh_token, tab_n
 def append_leads(sheet_id, client_id, client_secret, refresh_token, tab_name, leads, conversion_name):
     """Append new lead rows to the Google Sheet.
 
+    Columns: GCLID | Conversion Date & Timestamp | Conversion Name
+
     Args:
         sheet_id: Google Sheet ID.
         client_id: Google OAuth2 client ID.
         client_secret: Google OAuth2 client secret.
         refresh_token: Google OAuth2 refresh token.
         tab_name: Sheet tab name.
-        leads: List of dicts with keys: gclid, email, conversion_timestamp.
+        leads: List of dicts with keys: gclid, conversion_timestamp.
         conversion_name: Static value for the conversion name column.
 
     Returns:
@@ -66,47 +67,21 @@ def append_leads(sheet_id, client_id, client_secret, refresh_token, tab_name, le
 
     worksheet = _get_worksheet(sheet_id, client_id, client_secret, refresh_token, tab_name)
 
+    # Ensure header row exists
+    headers = ["gclid", "activity date & timestamp", "conversion name"]
+    row1 = worksheet.row_values(1)
+    if row1 != headers:
+        worksheet.update("A1:C1", [headers], value_input_option="USER_ENTERED")
+        logger.info("Header row set")
+
     rows = []
     for lead in leads:
-        try:
-            formatted_ts = _format_timestamp(lead["conversion_timestamp"])
-        except (ValueError, TypeError, OSError) as e:
-            logger.warning(
-                "Skipping lead %s — could not parse timestamp %r: %s",
-                lead.get("email"),
-                lead.get("conversion_timestamp"),
-                e,
-            )
-            continue
-        rows.append([lead["gclid"], lead["email"], formatted_ts, conversion_name])
+        rows.append([
+            lead["gclid"],
+            lead["conversion_timestamp"],
+            conversion_name,
+        ])
 
-    if not rows:
-        logger.warning("All %d leads skipped due to timestamp errors", len(leads))
-        return 0
-
-    worksheet.append_rows(rows, value_input_option="USER_ENTERED")
+    worksheet.append_rows(rows, value_input_option="USER_ENTERED", table_range="A1")
     logger.info("Appended %d rows to sheet", len(rows))
     return len(rows)
-
-
-def _format_timestamp(raw_timestamp):
-    """Convert HubSpot timestamp to UTC ISO 8601 format for Google Ads.
-
-    Handles both formats HubSpot may return:
-      - ISO 8601:  '2026-03-02T23:27:32.640Z'
-      - Epoch ms:  '1709423252640'
-
-    Output: '2026-03-02T23:27:32Z'
-    """
-    ts = str(raw_timestamp).strip()
-
-    # Detect epoch milliseconds (purely numeric string)
-    if ts.isdigit():
-        dt_utc = datetime.fromtimestamp(int(ts) / 1000, tz=timezone.utc)
-    else:
-        # Handle both 'Z' suffix and '+00:00' formats
-        ts = ts.replace("Z", "+00:00")
-        dt = datetime.fromisoformat(ts)
-        dt_utc = dt.astimezone(timezone.utc)
-
-    return dt_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
