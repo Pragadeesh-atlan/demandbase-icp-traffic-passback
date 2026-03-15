@@ -1,0 +1,39 @@
+name: One-time Backfill (Demandbase ICP Traffic)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create .env file
+        run: |
+          cat <<EOF > .env
+          HUBSPOT_ACCESS_TOKEN=${{ secrets.HUBSPOT_ACCESS_TOKEN }}
+          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN=${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          GOOGLE_SHEET_ID=${{ secrets.GOOGLE_SHEET_ID }}
+          GOOGLE_SHEET_TAB_NAME=Sheet1
+          CONVERSION_NAME=Demandbase ICP Traffic
+          LOOKBACK_DAYS=14
+          SLACK_BOT_TOKEN=${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_ID=${{ secrets.SLACK_CHANNEL_ID }}
+          EOF
+          sed -i 's/^[[:space:]]*//' .env
+
+      - name: Run backfill
+        run: python main.py

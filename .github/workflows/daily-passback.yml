@@ -1,0 +1,65 @@
+name: Daily Demandbase ICP Traffic Passback
+
+on:
+  schedule:
+    # Run daily at 00:30 UTC (6:00 AM IST)
+    - cron: '30 0 * * *'
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  passback:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create .env file
+        run: |
+          cat <<EOF > .env
+          HUBSPOT_ACCESS_TOKEN=${{ secrets.HUBSPOT_PRIVATE_ACCESS_TOKEN }}
+          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN=${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          GOOGLE_SHEET_ID=${{ secrets.GOOGLE_SHEET_ID }}
+          GOOGLE_SHEET_TAB_NAME=Sheet1
+          CONVERSION_NAME=Demandbase ICP Traffic
+          LOOKBACK_DAYS=2
+          SLACK_BOT_TOKEN=${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_ID=${{ secrets.SLACK_CHANNEL_ID }}
+          EOF
+          # Strip leading whitespace from .env lines
+          sed -i 's/^[[:space:]]*//' .env
+
+      - name: Run Demandbase ICP traffic passback
+        id: run_passback
+        continue-on-error: true
+        run: python main.py > /tmp/out.txt 2>&1
+
+      - name: Post error to issue if failed
+        if: steps.run_passback.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ERROR_OUTPUT=$(tail -30 /tmp/out.txt)
+          gh issue comment 10 --body "### Workflow Run Failed ($(date -u +%Y-%m-%dT%H:%M:%SZ))
+
+          \`\`\`
+          ${ERROR_OUTPUT}
+          \`\`\`"
+
+      - name: Fail if script failed
+        if: steps.run_passback.outcome == 'failure'
+        run: exit 1
