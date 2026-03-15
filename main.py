@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from logging.handlers import RotatingFileHandler
 
 import config
-from hubspot_client import fetch_new_workable_leads
+from snowflake_client import fetch_icp_traffic
 from sheets_client import get_existing_gclids, append_leads
 from slack_notifier import notify_success, notify_no_leads, notify_error
 
@@ -41,12 +41,9 @@ def main():
     logger.info("=== Demandbase ICP Traffic Passback Started ===")
 
     try:
-        # 1. Calculate lookback window
-        since_dt = (datetime.now(timezone.utc) - timedelta(days=config.LOOKBACK_DAYS)).replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
-        since_ms = int(since_dt.timestamp() * 1000)
-        logger.info("Looking back %d days (since %s)", config.LOOKBACK_DAYS, since_dt.isoformat())
+        # 1. Determine the start date for the query
+        since_date = config.SINCE_DATE
+        logger.info("Fetching ICP traffic since %s", since_date)
 
         # 2. Get existing GCLIDs from Google Sheet for dedup
         logger.info("Reading existing GCLIDs from Google Sheet...")
@@ -58,26 +55,31 @@ def main():
             config.GOOGLE_SHEET_TAB_NAME,
         )
 
-        # 3. Fetch new workable leads from HubSpot
-        logger.info("Fetching workable leads from HubSpot...")
-        leads = fetch_new_workable_leads(config.HUBSPOT_ACCESS_TOKEN, since_ms)
+        # 3. Fetch ICP traffic from Snowflake
+        logger.info("Fetching ICP traffic from Snowflake...")
+        leads = fetch_icp_traffic(
+            config.SNOWFLAKE_ACCOUNT,
+            config.SNOWFLAKE_USER,
+            config.SNOWFLAKE_PASSWORD,
+            config.SNOWFLAKE_WAREHOUSE,
+            since_date,
+        )
 
         # 4. Dedup — filter out leads already in the sheet
         new_leads = [lead for lead in leads if lead["gclid"] not in existing_gclids]
         skipped = len(leads) - len(new_leads)
 
         if skipped > 0:
-            logger.info("Skipped %d leads already in sheet", skipped)
+            logger.info("Skipped %d GCLIDs already in sheet", skipped)
 
         if not new_leads:
-            logger.info("No new leads to add. Done.")
-            # Notify Slack — no new leads
+            logger.info("No new GCLIDs to add. Done.")
             if config.SLACK_BOT_TOKEN and config.SLACK_CHANNEL_ID:
                 notify_no_leads(config.SLACK_BOT_TOKEN, config.SLACK_CHANNEL_ID, len(leads), skipped)
             return
 
         # 5. Append new leads to Google Sheet
-        logger.info("Appending %d new leads to Google Sheet...", len(new_leads))
+        logger.info("Appending %d new GCLIDs to Google Sheet...", len(new_leads))
         count = append_leads(
             config.GOOGLE_SHEET_ID,
             config.GOOGLE_CLIENT_ID,

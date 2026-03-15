@@ -16,13 +16,13 @@ def notify_success(bot_token, channel_id, fetched, skipped, appended, sheet_id):
     blocks = [
         {
             "type": "header",
-            "text": {"type": "plain_text", "text": "✅ Demandbase ICP Traffic Passback — Success"},
+            "text": {"type": "plain_text", "text": "Demandbase ICP Traffic Passback — Success"},
         },
         {
             "type": "section",
             "fields": [
                 {"type": "mrkdwn", "text": f"*Date:*\n{now}"},
-                {"type": "mrkdwn", "text": f"*Fetched from HubSpot:*\n{fetched} leads"},
+                {"type": "mrkdwn", "text": f"*Fetched from Snowflake:*\n{fetched} GCLIDs"},
             ],
         },
         {
@@ -38,29 +38,29 @@ def notify_success(bot_token, channel_id, fetched, skipped, appended, sheet_id):
             "elements": [
                 {
                     "type": "mrkdwn",
-                    "text": f"<{sheet_url}|📊 Google Sheet>",
+                    "text": f"<{sheet_url}|Google Sheet>",
                 }
             ],
         },
     ]
 
-    _send(bot_token, channel_id, f"✅ Demandbase ICP Traffic Passback: {appended} appended, {skipped} skipped", blocks)
+    _send(bot_token, channel_id, f"Demandbase ICP Traffic Passback: {appended} appended, {skipped} skipped", blocks)
 
 
 def notify_no_leads(bot_token, channel_id, fetched, skipped):
-    """Send a notification when no new leads were found."""
+    """Send a notification when no new GCLIDs were found."""
     now = datetime.now(timezone.utc).strftime("%B %d, %Y — %H:%M UTC")
 
     blocks = [
         {
             "type": "header",
-            "text": {"type": "plain_text", "text": "ℹ️ Demandbase ICP Traffic Passback — No New Leads"},
+            "text": {"type": "plain_text", "text": "Demandbase ICP Traffic Passback — No New GCLIDs"},
         },
         {
             "type": "section",
             "fields": [
                 {"type": "mrkdwn", "text": f"*Date:*\n{now}"},
-                {"type": "mrkdwn", "text": f"*Fetched from HubSpot:*\n{fetched} leads"},
+                {"type": "mrkdwn", "text": f"*Fetched from Snowflake:*\n{fetched} GCLIDs"},
             ],
         },
         {
@@ -72,7 +72,7 @@ def notify_no_leads(bot_token, channel_id, fetched, skipped):
         },
     ]
 
-    _send(bot_token, channel_id, f"ℹ️ Demandbase ICP Traffic Passback: No new leads today ({fetched} fetched, {skipped} dupes)", blocks)
+    _send(bot_token, channel_id, f"Demandbase ICP Traffic Passback: No new GCLIDs ({fetched} fetched, {skipped} dupes)", blocks)
 
 
 def notify_error(bot_token, channel_id, error_message):
@@ -82,7 +82,7 @@ def notify_error(bot_token, channel_id, error_message):
     blocks = [
         {
             "type": "header",
-            "text": {"type": "plain_text", "text": "❌ Demandbase ICP Traffic Passback — Error"},
+            "text": {"type": "plain_text", "text": "Demandbase ICP Traffic Passback — Error"},
         },
         {
             "type": "section",
@@ -93,7 +93,7 @@ def notify_error(bot_token, channel_id, error_message):
         },
     ]
 
-    _send(bot_token, channel_id, f"❌ Demandbase ICP Traffic Passback Error: {error_message}", blocks)
+    _send(bot_token, channel_id, f"Demandbase ICP Traffic Passback Error: {error_message}", blocks)
 
 
 def _send(bot_token, channel_id, fallback_text, blocks):

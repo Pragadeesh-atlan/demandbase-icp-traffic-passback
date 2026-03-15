@@ -29,14 +29,17 @@ jobs:
       - name: Create .env file
         run: |
           cat <<EOF > .env
-          HUBSPOT_ACCESS_TOKEN=${{ secrets.HUBSPOT_PRIVATE_ACCESS_TOKEN }}
+          SNOWFLAKE_ACCOUNT=${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER=${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PASSWORD=${{ secrets.SNOWFLAKE_PASSWORD }}
+          SNOWFLAKE_WAREHOUSE=${{ secrets.SNOWFLAKE_WAREHOUSE }}
           GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
-          GOOGLE_REFRESH_TOKEN=${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          GOOGLE_SHEETS_REFRESH_TOKEN=${{ secrets.GOOGLE_SHEETS_REFRESH_TOKEN }}
           GOOGLE_SHEET_ID=${{ secrets.GOOGLE_SHEET_ID }}
           GOOGLE_SHEET_TAB_NAME=Sheet1
-          CONVERSION_NAME=Demandbase ICP Traffic
-          LOOKBACK_DAYS=2
+          CONVERSION_NAME=ICP Traffic
+          SINCE_DATE=2026-03-01
           SLACK_BOT_TOKEN=${{ secrets.SLACK_BOT_TOKEN }}
           SLACK_CHANNEL_ID=${{ secrets.SLACK_CHANNEL_ID }}
           EOF
