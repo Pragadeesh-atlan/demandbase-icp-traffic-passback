@@ -57,9 +57,11 @@ def main():
         from sheets_client import get_existing_gclids, append_leads
         from slack_notifier import notify_success, notify_no_leads, notify_error
 
-        # 1. Determine the start date for the query
-        since_date = config.SINCE_DATE
-        logger.info("Fetching ICP traffic since %s", since_date)
+        # 1. Determine the start date — rolling window based on LOOKBACK_DAYS
+        since_date = (
+            datetime.now(timezone.utc) - timedelta(days=config.LOOKBACK_DAYS)
+        ).strftime("%Y-%m-%d")
+        logger.info("Fetching ICP traffic since %s (lookback=%d days)", since_date, config.LOOKBACK_DAYS)
 
         # 2. Get existing GCLIDs from Google Sheet for dedup
         logger.info("Reading existing GCLIDs from Google Sheet...")
