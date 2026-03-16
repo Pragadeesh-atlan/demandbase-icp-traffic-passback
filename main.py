@@ -4,11 +4,6 @@ import traceback
 from datetime import datetime, timedelta, timezone
 from logging.handlers import RotatingFileHandler
 
-import config
-from snowflake_client import fetch_icp_traffic
-from sheets_client import get_existing_gclids, append_leads
-from slack_notifier import notify_success, notify_no_leads, notify_error
-
 
 def setup_logging():
     """Configure logging to both console and rotating file."""
@@ -35,12 +30,33 @@ def setup_logging():
     root_logger.addHandler(console_handler)
 
 
+def _try_slack_error(error_detail):
+    """Best-effort Slack error notification, even if config is partially loaded."""
+    try:
+        from slack_notifier import notify_error
+
+        slack_token = os.getenv("SLACK_BOT_TOKEN")
+        slack_channel = os.getenv("SLACK_CHANNEL_ID")
+        if slack_token and slack_channel:
+            if len(error_detail) > 2900:
+                error_detail = error_detail[:2900] + "\n... (truncated)"
+            notify_error(slack_token, slack_channel, error_detail)
+    except Exception:
+        pass  # Slack is best-effort; don't mask the original error
+
+
 def main():
     setup_logging()
     logger = logging.getLogger(__name__)
     logger.info("=== Demandbase ICP Traffic Passback Started ===")
 
     try:
+        # Import config here so validation errors are caught by try/except
+        import config
+        from snowflake_client import fetch_icp_traffic
+        from sheets_client import get_existing_gclids, append_leads
+        from slack_notifier import notify_success, notify_no_leads, notify_error
+
         # 1. Determine the start date for the query
         since_date = config.SINCE_DATE
         logger.info("Fetching ICP traffic since %s", since_date)
@@ -110,11 +126,11 @@ def main():
 
     except Exception as e:
         logger.error("Script failed: %s", e)
-        logger.error(traceback.format_exc())
+        tb = traceback.format_exc()
+        logger.error(tb)
 
-        # Notify Slack — error
-        if config.SLACK_BOT_TOKEN and config.SLACK_CHANNEL_ID:
-            notify_error(config.SLACK_BOT_TOKEN, config.SLACK_CHANNEL_ID, str(e))
+        # Notify Slack — error (include traceback for debuggability)
+        _try_slack_error(f"{e}\n\n{tb}")
 
         raise
 

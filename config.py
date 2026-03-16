@@ -1,5 +1,4 @@
 import os
-import sys
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -41,6 +40,7 @@ _required = {
 
 _missing = [name for name, value in _required.items() if not value]
 if _missing:
-    print(f"ERROR: Missing required environment variables: {', '.join(_missing)}")
-    print("Copy .env.example to .env and fill in the values.")
-    sys.exit(1)
+    raise RuntimeError(
+        f"Missing required environment variables: {', '.join(_missing)}. "
+        "Copy .env.example to .env and fill in the values."
+    )
