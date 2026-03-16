@@ -49,15 +49,20 @@ jobs:
       - name: Run Demandbase ICP traffic passback
         id: run_passback
         continue-on-error: true
-        run: python main.py > /tmp/out.txt 2>&1
+        run: python main.py 2>&1 | tee /tmp/out.txt
 
       - name: Post error to issue if failed
         if: steps.run_passback.outcome == 'failure'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ERROR_OUTPUT=$(tail -30 /tmp/out.txt)
-          gh issue comment 10 --body "### Workflow Run Failed ($(date -u +%Y-%m-%dT%H:%M:%SZ))
+          ERROR_OUTPUT=$(tail -50 /tmp/out.txt)
+          gh issue create \
+            --title "Workflow Run Failed ($(date -u +%Y-%m-%d))" \
+            --label "bug" \
+            --body "### Workflow Run Failed ($(date -u +%Y-%m-%dT%H:%M:%SZ))
+
+          **Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
           \`\`\`
           ${ERROR_OUTPUT}
