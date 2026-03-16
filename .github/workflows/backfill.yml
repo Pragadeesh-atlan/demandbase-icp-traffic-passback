@@ -32,7 +32,7 @@ jobs:
           GOOGLE_SHEET_ID=${{ secrets.GOOGLE_SHEET_ID }}
           GOOGLE_SHEET_TAB_NAME=Sheet1
           CONVERSION_NAME=ICP Traffic
-          SINCE_DATE=2026-03-01
+          LOOKBACK_DAYS=30
           SLACK_BOT_TOKEN=${{ secrets.SLACK_BOT_TOKEN }}
           SLACK_CHANNEL_ID=${{ secrets.SLACK_CHANNEL_ID }}
           EOF
