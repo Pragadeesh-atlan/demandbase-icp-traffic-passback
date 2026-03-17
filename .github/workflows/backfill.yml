@@ -12,6 +12,10 @@ on:
         required: false
         default: '30'
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   backfill:
     runs-on: ubuntu-latest
@@ -49,4 +53,28 @@ jobs:
           sed -i 's/^[[:space:]]*//' .env
 
       - name: Run backfill
-        run: python main.py
+        id: run_backfill
+        continue-on-error: true
+        run: python main.py 2>&1 | tee /tmp/out.txt
+
+      - name: Post error to issue if failed
+        if: steps.run_backfill.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ERROR_OUTPUT=$(tail -50 /tmp/out.txt)
+          gh issue create \
+            --title "Backfill Run Failed ($(date -u +%Y-%m-%d))" \
+            --label "bug" \
+            --body "### Backfill Run Failed ($(date -u +%Y-%m-%dT%H:%M:%SZ))
+
+          **Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          **Inputs:** since_date=${{ github.event.inputs.since_date }}, lookback_days=${{ github.event.inputs.lookback_days }}
+
+          \`\`\`
+          ${ERROR_OUTPUT}
+          \`\`\`"
+
+      - name: Fail if script failed
+        if: steps.run_backfill.outcome == 'failure'
+        run: exit 1
