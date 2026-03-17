@@ -2,6 +2,15 @@ name: One-time Backfill (Demandbase ICP Traffic)
 
 on:
   workflow_dispatch:
+    inputs:
+      since_date:
+        description: 'Start date for data (YYYY-MM-DD). Rows before this are cleaned from the sheet.'
+        required: false
+        default: '2026-03-01'
+      lookback_days:
+        description: 'Number of days to look back from today for Snowflake query'
+        required: false
+        default: '30'
 
 jobs:
   backfill:
@@ -32,7 +41,8 @@ jobs:
           GOOGLE_SHEET_ID=${{ secrets.GOOGLE_SHEET_ID }}
           GOOGLE_SHEET_TAB_NAME=Sheet1
           CONVERSION_NAME=ICP Traffic
-          LOOKBACK_DAYS=30
+          SINCE_DATE=${{ github.event.inputs.since_date }}
+          LOOKBACK_DAYS=${{ github.event.inputs.lookback_days }}
           SLACK_BOT_TOKEN=${{ secrets.SLACK_BOT_TOKEN }}
           SLACK_CHANNEL_ID=${{ secrets.SLACK_CHANNEL_ID }}
           EOF
