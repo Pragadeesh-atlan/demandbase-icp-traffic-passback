@@ -73,9 +73,22 @@ def clean_old_rows(sheet_id, client_id, client_secret, refresh_token, tab_name, 
         logger.info("No old rows to clean (cutoff=%s)", cutoff_date)
         return 0
 
-    # Delete from bottom up to preserve row indices
-    for row_idx in reversed(rows_to_delete):
-        worksheet.delete_rows(row_idx)
+    # Group contiguous rows into ranges and delete from bottom up
+    # to preserve row indices for earlier ranges
+    ranges = []
+    start = rows_to_delete[0]
+    end = start
+    for idx in rows_to_delete[1:]:
+        if idx == end + 1:
+            end = idx
+        else:
+            ranges.append((start, end))
+            start = idx
+            end = idx
+    ranges.append((start, end))
+
+    for start_row, end_row in reversed(ranges):
+        worksheet.delete_rows(start_row, end_row)
 
     logger.info("Deleted %d rows with dates before %s", len(rows_to_delete), cutoff_date)
     return len(rows_to_delete)
