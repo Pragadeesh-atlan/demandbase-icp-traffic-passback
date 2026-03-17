@@ -44,6 +44,43 @@ def get_existing_gclids(sheet_id, client_id, client_secret, refresh_token, tab_n
     return gclids
 
 
+def clean_old_rows(sheet_id, client_id, client_secret, refresh_token, tab_name, cutoff_date):
+    """Delete rows from the sheet where the activity date is before cutoff_date.
+
+    Args:
+        cutoff_date: Date string (YYYY-MM-DD). Rows with dates before this are removed.
+
+    Returns:
+        Number of rows deleted.
+    """
+    worksheet = _get_worksheet(sheet_id, client_id, client_secret, refresh_token, tab_name)
+    all_values = worksheet.get_all_values()
+
+    if len(all_values) <= 1:
+        logger.info("Sheet has no data rows to clean")
+        return 0
+
+    rows_to_delete = []
+    for i, row in enumerate(all_values[1:], start=2):  # skip header, 1-indexed
+        if len(row) < 2 or not row[1]:
+            continue
+        # Column B is the activity date/timestamp (e.g. "2026-03-01T00:00:00Z")
+        row_date = row[1][:10]  # extract YYYY-MM-DD
+        if row_date < cutoff_date:
+            rows_to_delete.append(i)
+
+    if not rows_to_delete:
+        logger.info("No old rows to clean (cutoff=%s)", cutoff_date)
+        return 0
+
+    # Delete from bottom up to preserve row indices
+    for row_idx in reversed(rows_to_delete):
+        worksheet.delete_rows(row_idx)
+
+    logger.info("Deleted %d rows with dates before %s", len(rows_to_delete), cutoff_date)
+    return len(rows_to_delete)
+
+
 def append_leads(sheet_id, client_id, client_secret, refresh_token, tab_name, leads, conversion_name):
     """Append new lead rows to the Google Sheet.
 

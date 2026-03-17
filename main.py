@@ -54,14 +54,32 @@ def main():
         # Import config here so validation errors are caught by try/except
         import config
         from snowflake_client import fetch_icp_traffic
-        from sheets_client import get_existing_gclids, append_leads
+        from sheets_client import get_existing_gclids, append_leads, clean_old_rows
         from slack_notifier import notify_success, notify_no_leads, notify_error
 
-        # 1. Determine the start date — rolling window based on LOOKBACK_DAYS
-        since_date = (
+        # 1. Determine the start date — rolling window based on LOOKBACK_DAYS,
+        #    but never earlier than SINCE_DATE (the absolute floor).
+        lookback_date = (
             datetime.now(timezone.utc) - timedelta(days=config.LOOKBACK_DAYS)
         ).strftime("%Y-%m-%d")
-        logger.info("Fetching ICP traffic since %s (lookback=%d days)", since_date, config.LOOKBACK_DAYS)
+        since_date = max(lookback_date, config.SINCE_DATE)
+        logger.info(
+            "Fetching ICP traffic since %s (lookback=%d days, floor=%s)",
+            since_date, config.LOOKBACK_DAYS, config.SINCE_DATE,
+        )
+
+        # 1b. Clean old rows from sheet (before SINCE_DATE)
+        logger.info("Cleaning sheet rows before %s...", config.SINCE_DATE)
+        deleted = clean_old_rows(
+            config.GOOGLE_SHEET_ID,
+            config.GOOGLE_CLIENT_ID,
+            config.GOOGLE_CLIENT_SECRET,
+            config.GOOGLE_REFRESH_TOKEN,
+            config.GOOGLE_SHEET_TAB_NAME,
+            config.SINCE_DATE,
+        )
+        if deleted:
+            logger.info("Cleaned %d old rows from sheet", deleted)
 
         # 2. Get existing GCLIDs from Google Sheet for dedup
         logger.info("Reading existing GCLIDs from Google Sheet...")
