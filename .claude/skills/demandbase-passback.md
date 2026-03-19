@@ -46,7 +46,7 @@ gh run view <run-id> --repo Pragadeesh-atlan/demandbase-icp-traffic-passback --l
 | Parameter | Default | Purpose |
 |-----------|---------|---------|
 | `SINCE_DATE` | 2026-03-01 | Absolute floor date — rows older than this are cleaned |
-| `LOOKBACK_DAYS` | 14 | Rolling window for Snowflake query (accounts for 2-3 day Demandbase ingestion lag) |
+| `LOOKBACK_DAYS` | 5 | Rolling window for Snowflake query (accounts for 2-3 day Demandbase ingestion lag) |
 | `CONVERSION_NAME` | ICP Traffic | Static label for the conversion name column |
 
 ## Google Sheet
@@ -58,7 +58,7 @@ Columns: `gclid | activity date & timestamp | conversion name`
 
 **"No New GCLIDs" every day:**
 - Demandbase has a 2-3 day data ingestion lag into Snowflake
-- Check if `LOOKBACK_DAYS` is large enough (currently 14)
+- Check if `LOOKBACK_DAYS` is large enough (currently 5)
 - Run the backfill workflow with a larger `lookback_days` to catch up
 
 **Data gap after a specific date:**

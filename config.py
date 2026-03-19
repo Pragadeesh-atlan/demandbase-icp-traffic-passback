@@ -19,7 +19,7 @@ GOOGLE_SHEET_TAB_NAME = os.getenv("GOOGLE_SHEET_TAB_NAME") or "Sheet1"
 # Pipeline settings
 CONVERSION_NAME = os.getenv("CONVERSION_NAME") or "ICP Traffic"
 SINCE_DATE = os.getenv("SINCE_DATE") or "2026-03-01"
-LOOKBACK_DAYS = int(os.getenv("LOOKBACK_DAYS") or "14")
+LOOKBACK_DAYS = int(os.getenv("LOOKBACK_DAYS") or "5")
 
 # Slack (optional)
 SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
