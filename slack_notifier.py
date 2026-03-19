@@ -47,9 +47,10 @@ def notify_success(bot_token, channel_id, fetched, skipped, appended, sheet_id):
     _send(bot_token, channel_id, f"Demandbase ICP Traffic Passback: {appended} appended, {skipped} skipped", blocks)
 
 
-def notify_no_leads(bot_token, channel_id, fetched, skipped):
+def notify_no_leads(bot_token, channel_id, fetched, skipped, sheet_id):
     """Send a notification when no new GCLIDs were found."""
     now = datetime.now(timezone.utc).strftime("%B %d, %Y — %H:%M UTC")
+    sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit"
 
     blocks = [
         {
@@ -68,6 +69,16 @@ def notify_no_leads(bot_token, channel_id, fetched, skipped):
             "fields": [
                 {"type": "mrkdwn", "text": f"*Skipped (already in sheet):*\n{skipped}"},
                 {"type": "mrkdwn", "text": "*New rows appended:*\n0"},
+            ],
+        },
+        {"type": "divider"},
+        {
+            "type": "context",
+            "elements": [
+                {
+                    "type": "mrkdwn",
+                    "text": f"<{sheet_url}|Google Sheet>",
+                }
             ],
         },
     ]

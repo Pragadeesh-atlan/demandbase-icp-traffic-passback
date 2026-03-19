@@ -101,6 +101,16 @@ def main():
             since_date,
         )
 
+        # 3b. Log the date range of fetched data for diagnostics
+        if leads:
+            timestamps = [l["conversion_timestamp"][:10] for l in leads]
+            logger.info(
+                "Snowflake data spans %s to %s (%d unique GCLIDs)",
+                min(timestamps), max(timestamps), len(leads),
+            )
+        else:
+            logger.warning("Snowflake returned 0 GCLIDs for since_date=%s", since_date)
+
         # 4. Dedup — filter out leads already in the sheet
         new_leads = [lead for lead in leads if lead["gclid"] not in existing_gclids]
         skipped = len(leads) - len(new_leads)
@@ -111,7 +121,7 @@ def main():
         if not new_leads:
             logger.info("No new GCLIDs to add. Done.")
             if config.SLACK_BOT_TOKEN and config.SLACK_CHANNEL_ID:
-                notify_no_leads(config.SLACK_BOT_TOKEN, config.SLACK_CHANNEL_ID, len(leads), skipped)
+                notify_no_leads(config.SLACK_BOT_TOKEN, config.SLACK_CHANNEL_ID, len(leads), skipped, config.GOOGLE_SHEET_ID)
             return
 
         # 5. Append new leads to Google Sheet
