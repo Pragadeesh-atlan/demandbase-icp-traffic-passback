@@ -51,6 +51,36 @@ def check_snowflake():
     for r in rows:
         print(f"  {r[0]}: {r[1]:,} rows with GCLIDs")
 
+    # ── CHECK 1b: Total rows by date (with and without GCLID filter) ──
+    print("\n" + "=" * 70)
+    print("CHECK 1b: Demandbase table — ALL rows vs GCLID rows (last 14 days)")
+    print("=" * 70)
+    cur.execute("""
+        SELECT
+            DATE,
+            COUNT(*) AS total_rows,
+            COUNT(CASE WHEN LOWER(BASE_PAGE) LIKE '%%gclid%%' THEN 1 END) AS gclid_rows
+        FROM DEMANDBASE_DB.GCS_TABLES.DB1_ACCOUNT_SITE_BASE_PAGE_METRICS
+        WHERE DATE >= DATEADD(day, -14, CURRENT_DATE())
+        GROUP BY DATE
+        ORDER BY DATE DESC
+    """)
+    rows = cur.fetchall()
+    for r in rows:
+        print(f"  {r[0]}: {r[1]:,} total, {r[2]:,} with GCLIDs")
+    if rows and rows[0][2] == 0:
+        print("  >>> ISSUE: Table has data but NO GCLIDs in recent days!")
+        print("  >>> Checking BASE_PAGE samples for recent dates...")
+        cur.execute("""
+            SELECT DATE, BASE_PAGE
+            FROM DEMANDBASE_DB.GCS_TABLES.DB1_ACCOUNT_SITE_BASE_PAGE_METRICS
+            WHERE DATE = (SELECT MAX(DATE) FROM DEMANDBASE_DB.GCS_TABLES.DB1_ACCOUNT_SITE_BASE_PAGE_METRICS)
+            LIMIT 5
+        """)
+        for r in cur.fetchall():
+            page = r[1][:120] + "..." if len(str(r[1])) > 120 else r[1]
+            print(f"    {r[0]}: {page}")
+
     # ── CHECK 2: List all tables in GCS_TABLES schema ──
     print("\n" + "=" * 70)
     print("CHECK 2: All tables in DEMANDBASE_DB.GCS_TABLES schema")
