@@ -5,6 +5,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   diagnose:
@@ -37,4 +38,21 @@ jobs:
           sed -i 's/^[[:space:]]*//' .env
 
       - name: Run diagnostics
-        run: python diagnose.py
+        run: python diagnose.py 2>&1 | tee /tmp/diag_output.txt
+
+      - name: Post results to GitHub issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DIAG_OUTPUT=$(cat /tmp/diag_output.txt 2>/dev/null || echo "No output captured")
+          gh issue create \
+            --title "Diagnostic Report ($(date -u +%Y-%m-%d))" \
+            --label "investigation" \
+            --body "### Diagnostic Report — $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          **Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          \`\`\`
+          ${DIAG_OUTPUT}
+          \`\`\`"
